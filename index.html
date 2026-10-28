@@ -3,33 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cittadella di Gozo - test WebXR</title>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.4.0/model-viewer.min.js"></script>
   <style>
-    body { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background-color: #ffffff; }
+    html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: white; font-family: Arial, sans-serif; }
     model-viewer { width: 100%; height: 100%; }
+    #ar-button { background: white; border-radius: 8px; border: 1px solid #bbb; position: absolute; top: 16px; right: 16px; padding: 12px; font-weight: bold; cursor: pointer; }
+    #diagnostica { position: absolute; bottom: 16px; left: 12px; right: 12px; z-index: 10; padding: 10px 12px; background: rgba(5, 22, 35, .85); color: white; border-radius: 8px; font-size: 13px; line-height: 1.5; pointer-events: none; }
+    #diagnostica b { color: #ace7ff; }
+    #prompt-ar { display: none; position: absolute; top: 76px; left: 12px; right: 12px; padding: 9px; border-radius: 8px; background: rgba(255, 255, 255, .92); text-align: center; font-size: 14px; color: #123; pointer-events: none; }
+    model-viewer[ar-status="session-started"] #prompt-ar { display: block; }
+    model-viewer[ar-status="object-placed"] #prompt-ar { display: none; }
   </style>
 </head>
 <body>
-
-  <model-viewer 
-    src="cittadella_gozo_3d-v1.glb" 
-    ar 
-   ar-modes="webxr quick-look"
-    camera-controls 
-    auto-rotate 
+  <model-viewer id="viewer"
+    src="cittadella_gozo_3d-v1.glb"
+    ar
+    ar-modes="webxr quick-look"
+    ar-placement="floor"
+    camera-controls
+    auto-rotate
     scale="0.3 0.3 0.3"
     shadow-intensity="1.5"
     exposure="1.2"
     environment-image="neutral"
-    camera-orbit="0deg 75deg 105%" 
+    camera-orbit="0deg 75deg 105%"
     min-camera-orbit="auto auto 5%"
     alt="Modello 3D Cittadella Gozo">
-    
-    <button slot="ar-button" style="background-color: white; border-radius: 8px; border: 1px solid #ccc; position: absolute; top: 20px; right: 20px; padding: 12px; font-weight: bold; cursor: pointer;">
-      Vedi in AR
-    </button>
-    
+    <button slot="ar-button" id="ar-button">Vedi in AR</button>
+    <div id="prompt-ar">Muovi lentamente il telefono per individuare una superficie.</div>
+    <div id="diagnostica" aria-live="polite">
+      <b>TEST • Model Viewer 4.4.0</b><br>
+      Modello: <span id="stato-modello">caricamento...</span> &nbsp;|
+      AR: <span id="stato-ar">non avviata</span> &nbsp;|
+      Tracking: <span id="stato-tracking">non disponibile</span>
+    </div>
   </model-viewer>
-
+  <script type="module">
+    const viewer = document.querySelector('#viewer');
+    const statoModello = document.querySelector('#stato-modello');
+    const statoAR = document.querySelector('#stato-ar');
+    const statoTracking = document.querySelector('#stato-tracking');
+    viewer.addEventListener('load', () => { statoModello.textContent = 'caricato'; });
+    viewer.addEventListener('error', event => {
+      statoModello.textContent = 'errore: ' + (event.detail?.type ?? 'sconosciuto');
+    });
+    viewer.addEventListener('ar-status', event => {
+      const traduzioni = {
+        'not-presenting': 'non avviata',
+        'session-started': 'sessione avviata (in attesa di collocazione)',
+        'object-placed': 'oggetto collocato',
+        'failed': 'avvio non riuscito'
+      };
+      statoAR.textContent = traduzioni[event.detail?.status] ?? event.detail?.status ?? 'sconosciuto';
+    });
+    viewer.addEventListener('ar-tracking', event => {
+      statoTracking.textContent = event.detail?.status === 'tracking' ? 'attivo' : 'non attivo';
+    });
+  </script>
 </body>
 </html>
