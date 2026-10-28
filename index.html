@@ -34,10 +34,12 @@
     <button slot="ar-button" id="ar-button">Vedi in AR</button>
     <div id="prompt-ar">Muovi lentamente il telefono per individuare una superficie.</div>
     <div id="diagnostica" aria-live="polite">
-      <b>TEST • Model Viewer 4.4.0</b><br>
+      <b>TEST MISURE • Model Viewer 4.4.0</b><br>
       Modello: <span id="stato-modello">caricamento...</span> &nbsp;|
       AR: <span id="stato-ar">non avviata</span> &nbsp;|
-      Tracking: <span id="stato-tracking">non disponibile</span>
+      Tracking: <span id="stato-tracking">nessun evento ricevuto</span><br>
+      Dimensioni (m): <span id="dimensioni">calcolo in corso...</span><br>
+      Centro bounding box (m): <span id="centro">calcolo in corso...</span>
     </div>
   </model-viewer>
   <script type="module">
@@ -45,7 +47,19 @@
     const statoModello = document.querySelector('#stato-modello');
     const statoAR = document.querySelector('#stato-ar');
     const statoTracking = document.querySelector('#stato-tracking');
-    viewer.addEventListener('load', () => { statoModello.textContent = 'caricato'; });
+    viewer.addEventListener('load', () => {
+      statoModello.textContent = 'caricato';
+      const fmt = (v) => Number.isFinite(v) ? v.toFixed(3) : String(v);
+      try {
+        const d = viewer.getDimensions();
+        const c = viewer.getBoundingBoxCenter();
+        document.querySelector('#dimensioni').textContent = [d.x,d.y,d.z].map(fmt).join(' × ');
+        document.querySelector('#centro').textContent = [c.x,c.y,c.z].map(fmt).join(', ');
+      } catch (e) {
+        document.querySelector('#dimensioni').textContent = 'errore: ' + e.message;
+        document.querySelector('#centro').textContent = 'errore';
+      }
+    });
     viewer.addEventListener('error', event => {
       statoModello.textContent = 'errore: ' + (event.detail?.type ?? 'sconosciuto');
     });
