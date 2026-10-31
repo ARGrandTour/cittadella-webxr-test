@@ -3,18 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cittadella di Gozo - test correzione WebXR</title>
+  <title>Cittadella di Gozo</title>
 
   <!--
-    CORREZIONE (deve stare PRIMA dello script di Model Viewer).
-    Le versioni recenti di Chrome per Android espongono l'API "WebXR Layers".
-    Three.js, il motore interno di Model Viewer, quando la trova disegna il modello
-    in un "XRProjectionLayer" che Chrome Android, in modalità immersive-ar,
-    non sovrappone all'immagine della fotocamera: il modello esiste, è collocato,
-    ma non si vede. Nascondendo createProjectionLayer, Three.js torna al percorso
-    classico "XRWebGLLayer", lo stesso usato dalle demo WebXR che sul tuo telefono funzionano.
-    La correzione si applica solo su Android (esclusi i visori Meta Quest).
-    Per riprodurre il difetto a scopo di confronto: aggiungere ?layers=1 all'indirizzo.
+    CORREZIONE AR PER ANDROID (ottobre 2026). Deve restare PRIMA dello script di Model Viewer.
+    Chrome per Android recente espone l'API "WebXR Layers": Three.js (dentro Model Viewer) la usa
+    e il modello, pur collocato, non viene mostrato sopra la fotocamera. Nascondendo
+    createProjectionLayer si torna al percorso classico XRWebGLLayer. Solo telefoni Android.
+    Indirizzo + ?layers=1  -> correzione disattivata (controprova)
+    Indirizzo + ?diagnostica=1 -> mostra il riquadro diagnostico
   -->
   <script>
     (function () {
@@ -24,21 +21,15 @@
       var forceLayers = params.get('layers') === '1';
       window.__arPatch = 'non necessaria su questo dispositivo';
       window.__xrLayer = 'nessuna sessione';
-
       if (isAndroidPhone && !forceLayers && typeof XRWebGLBinding !== 'undefined'
           && 'createProjectionLayer' in XRWebGLBinding.prototype) {
         try {
           delete XRWebGLBinding.prototype.createProjectionLayer;
-          window.__arPatch = ('createProjectionLayer' in XRWebGLBinding.prototype)
-            ? 'NON riuscita' : 'attiva';
-        } catch (e) {
-          window.__arPatch = 'errore: ' + e.message;
-        }
+          window.__arPatch = ('createProjectionLayer' in XRWebGLBinding.prototype) ? 'NON riuscita' : 'attiva';
+        } catch (e) { window.__arPatch = 'errore: ' + e.message; }
       } else if (forceLayers) {
         window.__arPatch = 'disattivata di proposito (?layers=1)';
       }
-
-      // Registra quale percorso di rendering usa davvero la sessione AR.
       if (typeof XRSession !== 'undefined' && XRSession.prototype.updateRenderState) {
         var originale = XRSession.prototype.updateRenderState;
         XRSession.prototype.updateRenderState = function (state) {
@@ -52,36 +43,36 @@
   </script>
 
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.4.0/model-viewer.min.js"></script>
-
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: white; font-family: Arial, sans-serif; }
+    body { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background-color: #ffffff; }
     model-viewer { width: 100%; height: 100%; }
-    #ar-button { background: white; border-radius: 8px; border: 1px solid #bbb; position: absolute; top: 16px; right: 16px; padding: 12px; font-weight: bold; cursor: pointer; }
-    #diagnostica { position: absolute; bottom: 16px; left: 12px; right: 12px; z-index: 10; padding: 10px 12px; background: rgba(5, 22, 35, .85); color: white; border-radius: 8px; font-size: 13px; line-height: 1.5; pointer-events: none; }
+    #diagnostica { display: none; position: absolute; bottom: 16px; left: 12px; right: 12px; z-index: 10; padding: 10px 12px; background: rgba(5, 22, 35, .85); color: white; border-radius: 8px; font-family: Arial, sans-serif; font-size: 13px; line-height: 1.5; pointer-events: none; }
     #diagnostica b { color: #ace7ff; }
-    #prompt-ar { display: none; position: absolute; top: 76px; left: 12px; right: 12px; padding: 9px; border-radius: 8px; background: rgba(255, 255, 255, .92); text-align: center; font-size: 14px; color: #123; pointer-events: none; }
-    model-viewer[ar-status="session-started"] #prompt-ar { display: block; }
-    model-viewer[ar-status="object-placed"] #prompt-ar { display: none; }
   </style>
 </head>
 <body>
+
   <model-viewer id="viewer"
     src="cittadella_gozo_3d-v1.glb"
     ios-src="cittadella_gozo.usdz"
     ar
-    ar-modes="webxr scene-viewer quick-look"
-    ar-placement="floor"
+    ar-modes="webxr quick-look"
     camera-controls
     auto-rotate
     scale="0.01 0.01 0.01"
     shadow-intensity="1.5"
     exposure="1.2"
+    camera-orbit="0deg 75deg 105%"
+    min-camera-orbit="auto auto 5%"
     environment-image="neutral"
     alt="Modello 3D Cittadella Gozo">
-    <button slot="ar-button" id="ar-button">Vedi in AR</button>
-    <div id="prompt-ar">Muovi lentamente il telefono per individuare una superficie.</div>
+
+    <button slot="ar-button" style="background-color: white; border-radius: 8px; border: 1px solid #ccc; position: absolute; top: 20px; right: 20px; padding: 12px; font-weight: bold; cursor: pointer;">
+      Vedi in AR
+    </button>
+
     <div id="diagnostica" aria-live="polite">
-      <b>TEST CORREZIONE LAYER + iPhone • Model Viewer 4.4.0</b><br>
+      <b>DIAGNOSTICA • Cittadella di Gozo • Model Viewer 4.4.0</b><br>
       Chrome: <span id="chrome">?</span> | Correzione: <span id="patch">?</span><br>
       Percorso di rendering AR: <span id="layer">nessuna sessione</span><br>
       Modello: <span id="stato-modello">caricamento...</span> |
@@ -92,41 +83,31 @@
   </model-viewer>
 
   <script type="module">
-    const viewer = document.querySelector('#viewer');
-    const $ = (id) => document.querySelector(id);
-    const fmt = (v) => Number.isFinite(v) ? v.toFixed(3) : String(v);
-
-    const m = navigator.userAgent.match(/Chrome\/([\d.]+)/);
-    $('#chrome').textContent = m ? m[1] : 'non Chrome';
-    $('#patch').textContent = window.__arPatch;
-    const aggiornaLayer = () => { $('#layer').textContent = window.__xrLayer; };
-    window.addEventListener('xr-layer-info', aggiornaLayer);
-
-    viewer.addEventListener('load', () => {
-      $('#stato-modello').textContent = 'caricato';
-      try {
-        const d = viewer.getDimensions();
-        $('#dimensioni').textContent = [d.x, d.y, d.z].map(fmt).join(' × ');
-      } catch (e) {
-        $('#dimensioni').textContent = 'errore: ' + e.message;
-      }
-    });
-    viewer.addEventListener('error', (e) => {
-      $('#stato-modello').textContent = 'errore: ' + (e.detail?.type ?? 'sconosciuto');
-    });
-    viewer.addEventListener('ar-status', (e) => {
-      const t = {
-        'not-presenting': 'non avviata',
-        'session-started': 'sessione avviata',
-        'object-placed': 'oggetto collocato',
-        'failed': 'avvio non riuscito'
+    if (new URLSearchParams(location.search).get('diagnostica') === '1') {
+      const viewer = document.querySelector('#viewer');
+      const $ = (id) => document.querySelector(id);
+      const fmt = (v) => Number.isFinite(v) ? v.toFixed(3) : String(v);
+      $('#diagnostica').style.display = 'block';
+      const m = navigator.userAgent.match(/Chrome\/([\d.]+)/);
+      $('#chrome').textContent = m ? m[1] : 'non Chrome';
+      $('#patch').textContent = window.__arPatch;
+      const aggiornaLayer = () => { $('#layer').textContent = window.__xrLayer; };
+      window.addEventListener('xr-layer-info', aggiornaLayer);
+      const misura = () => {
+        $('#stato-modello').textContent = 'caricato';
+        try { const d = viewer.getDimensions(); $('#dimensioni').textContent = [d.x, d.y, d.z].map(fmt).join(' × '); }
+        catch (e) { $('#dimensioni').textContent = 'errore: ' + e.message; }
       };
-      $('#stato-ar').textContent = t[e.detail?.status] ?? e.detail?.status ?? 'sconosciuto';
-      aggiornaLayer();
-    });
-    viewer.addEventListener('ar-tracking', (e) => {
-      $('#stato-tracking').textContent = e.detail?.status === 'tracking' ? 'attivo' : 'non attivo';
-    });
+      if (viewer.loaded) misura();
+      viewer.addEventListener('load', misura);
+      viewer.addEventListener('error', (e) => { $('#stato-modello').textContent = 'errore: ' + (e.detail?.type ?? 'sconosciuto'); });
+      viewer.addEventListener('ar-status', (e) => {
+        const t = { 'not-presenting': 'non avviata', 'session-started': 'sessione avviata', 'object-placed': 'oggetto collocato', 'failed': 'avvio non riuscito' };
+        $('#stato-ar').textContent = t[e.detail?.status] ?? e.detail?.status ?? 'sconosciuto';
+        aggiornaLayer();
+      });
+      viewer.addEventListener('ar-tracking', (e) => { $('#stato-tracking').textContent = e.detail?.status === 'tracking' ? 'attivo' : 'non attivo'; });
+    }
   </script>
 </body>
 </html>
